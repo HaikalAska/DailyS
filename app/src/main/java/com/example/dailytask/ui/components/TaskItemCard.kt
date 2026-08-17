@@ -1,10 +1,6 @@
 package com.example.dailytask.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,12 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Alarm
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,290 +36,206 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dailytask.data.model.CategoryConstants
 import com.example.dailytask.data.model.TaskEntity
-import com.example.dailytask.ui.theme.AccentAmber
-import com.example.dailytask.ui.theme.AccentAmberLight
-import com.example.dailytask.ui.theme.AccentMint
-import com.example.dailytask.ui.theme.AccentMintLight
-import com.example.dailytask.ui.theme.AccentRed
-import com.example.dailytask.ui.theme.AccentRedLight
 
 @Composable
 fun TaskItemCard(
     task: TaskEntity,
-    onToggle: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isFirst: Boolean = false,
+    isLast: Boolean = false,
+    onToggle: () -> Unit = {}
 ) {
     val categoryInfo = remember(task.category) {
         CategoryConstants.getCategoryInfo(task.category)
     }
 
     var isExpanded by remember { mutableStateOf(false) }
+    val spineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
 
-    val checkboxScale by animateFloatAsState(
-        targetValue = if (task.isCompleted) 1.1f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
-        label = "checkboxScale"
-    )
+    val timeWidth = 48.dp
+    val timeToDotGap = 10.dp
+    val dotContainerWidth = 16.dp
 
-    val priorityAccentColor = when (task.priority) {
-        "Tinggi" -> AccentRed
-        "Sedang" -> AccentAmber
-        else -> AccentMint
-    }
-    val priorityContainerColor = when (task.priority) {
-        "Tinggi" -> AccentRedLight
-        "Sedang" -> AccentAmberLight
-        else -> AccentMintLight
-    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded }
+            .drawBehind {
+                val strokeW = 2.dp.toPx()
+                val centerX = timeWidth.toPx() + timeToDotGap.toPx() + (dotContainerWidth.toPx() / 2f)
+                val dotCenterY = 10.dp.toPx()
 
-    // Card surface color based on completion
-    val cardColor by animateColorAsState(
-        targetValue = if (task.isCompleted)
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        else
-            MaterialTheme.colorScheme.surface,
-        label = "cardColor"
-    )
+                // Continuous spine line from top of row to dot
+                if (!isFirst) {
+                    drawLine(
+                        color = spineColor,
+                        start = Offset(centerX, 0f),
+                        end = Offset(centerX, dotCenterY),
+                        strokeWidth = strokeW
+                    )
+                }
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = cardColor,
-        shadowElevation = if (task.isCompleted) 0.dp else 4.dp,
-        tonalElevation = 0.dp
+                // Continuous spine line from dot to bottom of row (seamless connection to next item)
+                if (!isLast) {
+                    drawLine(
+                        color = spineColor,
+                        start = Offset(centerX, dotCenterY),
+                        end = Offset(centerX, size.height),
+                        strokeWidth = strokeW
+                    )
+                }
+            }
+            .padding(vertical = 2.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            // Left accent bar — colored by category
+        // ── 1. Left Time Column (e.g. 09:00, 12:30) ──
+        Box(
+            modifier = Modifier
+                .width(timeWidth)
+                .padding(top = 1.dp),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Text(
+                text = task.time.ifEmpty { "•" },
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.5.sp,
+                    letterSpacing = (-0.2).sp
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(timeToDotGap))
+
+        // ── 2. Center Node Dot (Positioned exactly on the spine line) ──
+        Box(
+            modifier = Modifier
+                .width(dotContainerWidth)
+                .padding(top = 3.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
             Box(
                 modifier = Modifier
-                    .width(5.dp)
-                    .height(if (isExpanded && task.description.isNotEmpty()) 120.dp else 80.dp)
-                    .clip(RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
-                    .background(
-                        if (task.isCompleted) AccentMint.copy(alpha = 0.35f)
-                        else categoryInfo.primaryColor
-                    )
-            )
-
-            // Card content
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
-                    .padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(categoryInfo.primaryColor.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Animated bouncy checkbox
-                    Box(
-                        modifier = Modifier
-                            .scale(checkboxScale)
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (task.isCompleted) AccentMint else Color.Transparent
-                            )
-                            .then(
-                                if (!task.isCompleted) Modifier.background(
-                                    categoryInfo.primaryColor.copy(alpha = 0.08f),
-                                    CircleShape
-                                ) else Modifier
-                            )
-                            .clickable { onToggle() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (task.isCompleted) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = "Selesai",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(13.dp)
-                                    .clip(CircleShape)
-                                    .background(categoryInfo.primaryColor.copy(alpha = 0.35f))
-                            )
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(categoryInfo.primaryColor)
+                )
+            }
+        }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-                    // Title
-                    Text(
-                        text = task.title,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.SemiBold,
-                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                            fontSize = 15.sp
-                        ),
-                        color = if (task.isCompleted)
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        else
-                            MaterialTheme.colorScheme.onSurface,
-                        maxLines = if (isExpanded) 10 else 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+        // ── 3. Right Clean Borderless Activity Content ──
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Activity Title
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        letterSpacing = (-0.2).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                    maxLines = if (isExpanded) 10 else 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // Expand / Delete actions
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (task.description.isNotEmpty()) {
-                            Icon(
-                                imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                        }
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier.size(34.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DeleteOutline,
-                                contentDescription = "Hapus",
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Badges row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(start = 40.dp)
-                ) {
-                    // Category badge
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = categoryInfo.containerColor.copy(alpha = if (task.isCompleted) 0.4f else 0.85f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = categoryInfo.icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(10.dp),
-                                tint = categoryInfo.primaryColor.copy(alpha = if (task.isCompleted) 0.5f else 1f)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = categoryInfo.name,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = categoryInfo.primaryColor.copy(alpha = if (task.isCompleted) 0.5f else 1f)
-                            )
-                        }
-                    }
-
-                    // Time badge
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Schedule,
-                                contentDescription = null,
-                                modifier = Modifier.size(10.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = task.displayTime,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    // Priority badge (only show for Tinggi/Sedang)
-                    if (task.priority != "Normal") {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = priorityContainerColor.copy(alpha = if (task.isCompleted) 0.3f else 0.9f)
-                        ) {
-                            Text(
-                                text = task.priority,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = priorityAccentColor.copy(alpha = if (task.isCompleted) 0.4f else 1f)
-                            )
-                        }
-                    }
-
-                    // Reminder badge
-                    if (task.hasReminder) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Alarm,
-                                contentDescription = "Pengingat",
-                                modifier = Modifier
-                                    .padding(horizontal = 5.dp, vertical = 3.dp)
-                                    .size(10.dp),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    }
-                }
-
-                // Description on expand
-                AnimatedVisibility(
-                    visible = isExpanded && task.description.isNotEmpty(),
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp, start = 40.dp, end = 4.dp)
-                    ) {
-                        Text(
-                            text = task.description,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                lineHeight = 20.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (task.description.isNotEmpty()) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         )
                     }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = "Hapus",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            // Expandable Description
+            AnimatedVisibility(
+                visible = isExpanded && task.description.isNotEmpty(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = task.description,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.5.sp,
+                            lineHeight = 17.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Category Pill Tag
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = categoryInfo.containerColor.copy(alpha = 0.6f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = categoryInfo.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(9.dp),
+                        tint = categoryInfo.primaryColor
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = categoryInfo.name,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = categoryInfo.primaryColor
+                    )
                 }
             }
         }
     }
 }
-
-

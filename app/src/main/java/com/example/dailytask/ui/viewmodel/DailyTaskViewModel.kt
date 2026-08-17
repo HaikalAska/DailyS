@@ -104,7 +104,7 @@ class DailyTaskViewModel(application: Application) : AndroidViewModel(applicatio
         _searchQuery.value = query
     }
 
-    fun addQuickTask() {
+    fun addQuickTask(category: String = "Umum") {
         val text = _todayInputText.value.trim()
         if (text.isEmpty()) return
 
@@ -112,7 +112,7 @@ class DailyTaskViewModel(application: Application) : AndroidViewModel(applicatio
             title = text,
             date = _selectedDate.value,
             time = DateUtils.getCurrentTimeString(),
-            category = "Umum",
+            category = category,
             priority = "Normal",
             hasReminder = false,
             timestamp = System.currentTimeMillis()

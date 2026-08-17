@@ -1,14 +1,12 @@
 package com.example.dailytask.ui.screens
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,25 +21,21 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -58,7 +52,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -70,25 +63,19 @@ import com.example.dailytask.data.model.CategoryConstants
 import com.example.dailytask.ui.components.AddTaskBottomSheet
 import com.example.dailytask.ui.components.ConfettiBurst
 import com.example.dailytask.ui.components.ExpandableCalendarHeader
-import com.example.dailytask.ui.components.HorizontalWeekStrip
 import com.example.dailytask.ui.components.LottieEmptyState
 import com.example.dailytask.ui.components.SettingsBottomSheet
 import com.example.dailytask.ui.components.TaskItemCard
-import com.example.dailytask.ui.theme.AccentAmber
 import com.example.dailytask.ui.theme.AccentMint
-import com.example.dailytask.ui.theme.CoralGradientEnd
-import com.example.dailytask.ui.theme.CoralGradientStart
-import com.example.dailytask.ui.theme.VioletGradientEnd
-import com.example.dailytask.ui.theme.VioletGradientStart
+import com.example.dailytask.ui.theme.HeaderDarkEnd
+import com.example.dailytask.ui.theme.HeaderDarkStart
 import com.example.dailytask.ui.viewmodel.DailyTaskViewModel
-import com.example.dailytask.util.DateUtils
 import java.util.Calendar
 
-private fun getMotivationalQuote(completedRatio: Float): String = when {
-    completedRatio >= 1f  -> "Luar biasa! Semua selesai! 🎉"
-    completedRatio >= 0.7f -> "Hampir selesai, terus semangat! 💪"
-    completedRatio >= 0.4f -> "Kamu sudah di jalur yang benar! 🚀"
-    else -> "Hari baru, energi baru. Ayo mulai! ✨"
+private fun getHumanNarrative(totalCount: Int, completedCount: Int): String = when {
+    totalCount == 0 -> "Belum ada aktivitas tercatat. Apa yang sudah kamu lakukan hari ini?"
+    totalCount == 1 -> "1 aktivitas tercatat untuk hari ini."
+    else -> "Ada $totalCount aktivitas tercatat hari ini."
 }
 
 private fun getTimeGreeting(): String {
@@ -121,6 +108,7 @@ fun TodayScreen(
     var isCalendarExpanded by remember { mutableStateOf(false) }
     var showAddTaskSheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var selectedQuickCategory by remember { mutableStateOf("Umum") }
 
     val focusManager = LocalFocusManager.current
 
@@ -130,13 +118,12 @@ fun TodayScreen(
 
     val animatedProgress by animateFloatAsState(
         targetValue = targetProgress,
-        animationSpec = tween(durationMillis = 900),
+        animationSpec = tween(durationMillis = 800),
         label = "progressAnimation"
     )
 
-    val isAllDone = totalCount > 0 && completedCount == totalCount
     val greeting = getTimeGreeting()
-    val motivationalQuote = getMotivationalQuote(targetProgress)
+    val narrativeQuote = getHumanNarrative(totalCount, completedCount)
 
     Box(
         modifier = modifier
@@ -145,16 +132,16 @@ fun TodayScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 120.dp)
+            contentPadding = PaddingValues(bottom = 150.dp)
         ) {
-            // ── Expandable Gradient Calendar Header ───────────────────
+            // ── Expandable Obsidian Calendar Header ───────────────────
             item(key = "calendar_header") {
                 ExpandableCalendarHeader(
                     userName = userName,
                     greeting = greeting,
-                    motivationalQuote = motivationalQuote,
+                    motivationalQuote = narrativeQuote,
                     totalCount = totalCount,
-                    isAllDone = isAllDone,
+                    isAllDone = false,
                     animatedProgress = animatedProgress,
                     selectedDate = selectedDate,
                     datesWithTasks = datesWithTasks,
@@ -169,321 +156,277 @@ fun TodayScreen(
                 )
             }
 
-
-            // ── Stats bar ────────────────────────────────────────────
-            if (totalCount > 0) {
-                item(key = "stats_summary") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        StatChip(
-                            label = "Total",
-                            value = "$totalCount",
-                            color = CoralGradientStart,
-                            containerColor = CoralGradientStart.copy(alpha = 0.1f),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatChip(
-                            label = "Selesai",
-                            value = "$completedCount",
-                            color = AccentMint,
-                            containerColor = AccentMint.copy(alpha = 0.1f),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatChip(
-                            label = "Tersisa",
-                            value = "${totalCount - completedCount}",
-                            color = AccentAmber,
-                            containerColor = AccentAmber.copy(alpha = 0.1f),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // ── Category filter chips ─────────────────────────────────
-            item(key = "category_filters") {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp)
+            // ── Section Title (Clean & Minimalist) ─────────────────────
+            item(key = "agenda_heading") {
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 22.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    item(key = "cat_all") {
-                        val isAllSelected = filterCategory == null
-                        Surface(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .clickable { viewModel.setFilterCategory(null) },
-                            shape = RoundedCornerShape(50.dp),
-                            color = if (isAllSelected) CoralGradientStart else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (isAllSelected) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(13.dp),
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                }
-                                Text(
-                                    text = if (isAllSelected) "Semua  ${tasks.size}" else "Semua",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    ),
-                                    color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        text = "Aktivitas Hari Ini",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 17.sp,
+                            letterSpacing = (-0.3).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                    items(CategoryConstants.categories, key = { it.name }) { cat ->
-                        val isSelected = filterCategory == cat.name
+                    if (totalCount > 0) {
                         Surface(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .clickable { viewModel.setFilterCategory(cat.name) },
                             shape = RoundedCornerShape(50.dp),
-                            color = if (isSelected) cat.primaryColor else cat.containerColor.copy(alpha = 0.55f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = cat.icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = if (isSelected) Color.White else cat.primaryColor
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = cat.name,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    ),
-                                    color = if (isSelected) Color.White else cat.primaryColor
-                                )
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            // ── All done celebration banner ───────────────────────────
-            if (isAllDone) {
-                item(key = "celebration_banner") {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        shape = RoundedCornerShape(18.dp),
-                        color = AccentMint.copy(alpha = 0.1f)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                tint = AccentMint,
-                                modifier = Modifier.size(34.dp)
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 0.8.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                             )
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Column {
-                                Text(
-                                    text = "Semua Selesai! 🎉",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                    color = AccentMint
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(AccentMint)
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Kamu berhasil menyelesaikan $totalCount aktivitas hari ini!",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    text = "$totalCount aktivitas",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    ),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
-            // ── Task list or empty state ──────────────────────────────
+            // ── Activity Timeline List or Empty State ─────────────────
             if (tasks.isEmpty()) {
                 item(key = "empty_placeholder") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
+                            .padding(horizontal = 24.dp, vertical = 40.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         LottieEmptyState()
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Belum ada catatan",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            text = "Belum ada catatan aktivitas",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                letterSpacing = (-0.2).sp
+                            ),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Tulis aktivitas di bawah atau tekan + untuk jadwal lengkap",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Pilih kategori dan ketik aktivitas yang baru kamu lakukan di bawah",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 18.sp),
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
             } else {
-                items(
+                itemsIndexed(
                     items = tasks,
-                    key = { it.id }
-                ) { task ->
+                    key = { _, it -> it.id }
+                ) { index, task ->
                     TaskItemCard(
                         task = task,
-                        onToggle = { viewModel.toggleTask(task) },
+                        isFirst = index == 0,
+                        isLast = index == tasks.size - 1,
                         onDelete = { viewModel.deleteTask(task.id) },
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier.padding(horizontal = 22.dp)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
                 }
             }
         }
 
-
-        // ── Confetti overlay ─────────────────────────────────────────
-        if (isAllDone) {
-            ConfettiBurst(modifier = Modifier.fillMaxSize())
-        }
-
-        // ── Floating quick-add + FAB bar ─────────────────────────────
+        // ── Floating iOS Bottom Bar with Category Selector Above Input ──
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .imePadding()
                 .navigationBarsPadding(),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-            shadowElevation = 20.dp,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            tonalElevation = 0.dp
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+            shadowElevation = 18.dp,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            border = androidx.compose.foundation.BorderStroke(
+                width = 0.8.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            )
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(top = 12.dp, bottom = 12.dp)
             ) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { viewModel.onTodayInputChange(it) },
-                    placeholder = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Rounded.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                // ── Category Selector Pills (Above Input) ──
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 18.dp)
+                ) {
+                    items(CategoryConstants.categories, key = { it.name }) { cat ->
+                        val isSelected = selectedQuickCategory == cat.name
+                        Surface(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50.dp))
+                                .clickable { selectedQuickCategory = cat.name },
+                            shape = RoundedCornerShape(50.dp),
+                            color = if (isSelected) cat.primaryColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(
+                                width = 0.8.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Apa yang sudah kamu lakukan?",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                            )
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = CoralGradientStart,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        focusedContainerColor = CoralGradientStart.copy(alpha = 0.04f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                    ),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            if (inputText.isNotBlank()) {
-                                viewModel.addQuickTask()
-                                focusManager.clearFocus()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.5.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) Color.White else cat.primaryColor)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = cat.name,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 11.5.sp
+                                    ),
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
-                    ),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium
-                )
-
-                // Quick add button
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (inputText.isNotBlank())
-                                Brush.linearGradient(listOf(CoralGradientStart, CoralGradientEnd))
-                            else
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                )
-                        )
-                        .clickable(enabled = inputText.isNotBlank()) {
-                            viewModel.addQuickTask()
-                            focusManager.clearFocus()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = "Catat",
-                        tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(22.dp)
-                    )
+                    }
                 }
 
-                // Full add FAB
-                Box(
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // ── Quick Add Input Row ──
+                Row(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(VioletGradientStart, VioletGradientEnd)
-                            )
-                        )
-                        .clickable { showAddTaskSheet = true },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.AutoAwesome,
-                        contentDescription = "Tambah Jadwal Lengkap",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { viewModel.onTodayInputChange(it) },
+                        placeholder = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Catat aktivitas [$selectedQuickCategory]...",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                        ),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (inputText.isNotBlank()) {
+                                    viewModel.addQuickTask(selectedQuickCategory)
+                                    focusManager.clearFocus()
+                                }
+                            }
+                        ),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
                     )
+
+                    // Quick Add Action Pill
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (inputText.isNotBlank())
+                                    Brush.linearGradient(listOf(HeaderDarkStart, HeaderDarkEnd))
+                                else
+                                    Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                    )
+                            )
+                            .clickable(enabled = inputText.isNotBlank()) {
+                                viewModel.addQuickTask(selectedQuickCategory)
+                                focusManager.clearFocus()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = "Catat",
+                            tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Modal Schedule FAB
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                width = 0.8.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .clickable { showAddTaskSheet = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = "Catat Detail",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
                 }
             }
         }
 
-        // ── Bottom sheets ─────────────────────────────────────────────
+        // ── Bottom Sheets ─────────────────────────────────────────────
         if (showAddTaskSheet) {
             AddTaskBottomSheet(
                 initialDate = selectedDate,
@@ -505,41 +448,3 @@ fun TodayScreen(
         }
     }
 }
-
-@Composable
-private fun StatChip(
-    label: String,
-    value: String,
-    color: Color,
-    containerColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = containerColor
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp
-                ),
-                color = color
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                color = color.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-
-
