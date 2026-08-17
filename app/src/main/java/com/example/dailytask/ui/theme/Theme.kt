@@ -66,6 +66,18 @@ fun DAILYTASKTheme(
         else -> LightColorScheme
     }
 
+    val context = LocalContext.current
+    val window = (context as? android.app.Activity)?.window
+    if (window != null) {
+        androidx.compose.runtime.SideEffect {
+            val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+            // Top header is dark obsidian, so status bar icons MUST ALWAYS be white/bright
+            insetsController.isAppearanceLightStatusBars = false
+            // Bottom navigation bar icons match theme
+            insetsController.isAppearanceLightNavigationBars = !isDark
+        }
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,

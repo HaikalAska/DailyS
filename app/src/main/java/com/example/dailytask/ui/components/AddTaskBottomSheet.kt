@@ -91,7 +91,7 @@ fun AddTaskBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Tambah Jadwal & Aktivitas",
+                    text = "Catat Aktivitas",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -110,8 +110,8 @@ fun AddTaskBottomSheet(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Nama Tugas / Aktivitas") },
-                placeholder = { Text("Misal: Review laporan, Belajar Kotlin...") },
+                label = { Text("Nama Aktivitas") },
+                placeholder = { Text("Misal: Lari pagi 3km, Belajar Jetpack Compose...") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
@@ -327,7 +327,7 @@ fun AddTaskBottomSheet(
                 )
             ) {
                 Text(
-                    text = "Simpan Jadwal",
+                    text = "Simpan Aktivitas",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     )

@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -45,9 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,8 +58,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dailytask.ui.theme.AccentMint
-import com.example.dailytask.ui.theme.CoralGradientEnd
-import com.example.dailytask.ui.theme.CoralGradientStart
+import com.example.dailytask.ui.theme.HeaderDarkEnd
+import com.example.dailytask.ui.theme.HeaderDarkStart
 import com.example.dailytask.util.DateUtils
 
 @Composable
@@ -87,7 +84,8 @@ fun ExpandableCalendarHeader(
 ) {
     val daysGrid = remember(year, month) { DateUtils.getDaysInMonthGrid(year, month) }
     val monthYearTitle = remember(year, month) { DateUtils.formatMonthYear(year, month) }
-    val weekDays = remember { listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min") }
+    val weekDays = remember { listOf("SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MIN") }
+    val formattedDateHeader = remember(selectedDate) { DateUtils.formatDateToDisplay(selectedDate) }
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -101,12 +99,12 @@ fun ExpandableCalendarHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        CoralGradientStart,
-                        CoralGradientEnd,
-                        CoralGradientEnd.copy(alpha = 0.0f)
+                        HeaderDarkStart,
+                        HeaderDarkEnd
                     )
                 )
             )
@@ -115,9 +113,9 @@ fun ExpandableCalendarHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(top = 18.dp, bottom = 10.dp)
+                .padding(top = 22.dp, bottom = 8.dp)
         ) {
-            // ── Top Bar: Greeting + Progress + Settings ──
+            // ── Top Row: Editorial Greeting + Status & Settings ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -127,109 +125,87 @@ fun ExpandableCalendarHeader(
             ) {
                 Column {
                     Text(
-                        text = greeting,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = Color.White.copy(alpha = 0.75f)
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = userName,
+                        text = "$greeting, $userName",
                         style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 24.sp
+                            fontWeight = FontWeight.Black,
+                            fontSize = 24.sp,
+                            letterSpacing = (-0.5).sp
                         ),
                         color = Color.White
                     )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = formattedDateHeader,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.5.sp,
+                            letterSpacing = 0.2.sp
+                        ),
+                        color = Color.White.copy(alpha = 0.55f)
+                    )
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.14f))
+                        .clickable { onOpenSettings() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (totalCount > 0) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                progress = { animatedProgress },
-                                modifier = Modifier.fillMaxSize(),
-                                color = if (isAllDone) AccentMint else Color.White,
-                                trackColor = Color.White.copy(alpha = 0.25f),
-                                strokeWidth = 3.5.dp,
-                                strokeCap = StrokeCap.Round
-                            )
-                            Text(
-                                text = "${(animatedProgress * 100).toInt()}%",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 11.sp
-                                ),
-                                color = Color.White
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .clickable { onOpenSettings() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Pengaturan",
-                            tint = Color.White,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Pengaturan",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // ── Motivational Quote Pill ──
+            // ── Human Narrative Briefing Line ──
             AnimatedContent(
                 targetState = motivationalQuote,
                 transitionSpec = {
                     fadeIn(tween(300)) togetherWith fadeOut(tween(150))
                 },
-                label = "quoteAnim",
+                label = "narrativeAnim",
                 modifier = Modifier.padding(horizontal = 22.dp)
             ) { quote ->
                 Surface(
                     shape = RoundedCornerShape(50.dp),
-                    color = Color.White.copy(alpha = 0.18f)
+                    color = Color.White.copy(alpha = 0.08f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 0.8.dp,
+                        color = Color.White.copy(alpha = 0.12f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.size(13.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (isAllDone) AccentMint else Color(0xFF60A5FA))
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = quote,
                             style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.5.sp
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp,
+                                letterSpacing = 0.1.sp
                             ),
-                            color = Color.White
+                            color = Color.White.copy(alpha = 0.9f)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // ── 1-Week Horizontal Strip View (When Collapsed) ──
             AnimatedVisibility(
@@ -249,7 +225,7 @@ fun ExpandableCalendarHeader(
                             detectVerticalDragGestures(
                                 onDragStart = { dragDistanceY = 0f },
                                 onDragEnd = {
-                                    if (dragDistanceY > 25f) {
+                                    if (dragDistanceY > 15f) {
                                         onToggleExpand()
                                     }
                                     dragDistanceY = 0f
@@ -257,7 +233,7 @@ fun ExpandableCalendarHeader(
                                 onDragCancel = { dragDistanceY = 0f },
                                 onVerticalDrag = { change, dragAmount ->
                                     dragDistanceY += dragAmount
-                                    if (dragDistanceY > 25f) {
+                                    if (dragDistanceY > 15f) {
                                         change.consume()
                                         onToggleExpand()
                                         dragDistanceY = 0f
@@ -311,11 +287,15 @@ fun ExpandableCalendarHeader(
                         }
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color.White.copy(alpha = 0.97f),
-                        shadowElevation = 6.dp
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 8.dp,
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 0.8.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                        )
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             // Month Navigation Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -326,14 +306,14 @@ fun ExpandableCalendarHeader(
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(CoralGradientStart.copy(alpha = 0.1f))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
                                         .clickable { onChangeMonth(-1) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.ChevronLeft,
                                         contentDescription = "Bulan Lalu",
-                                        tint = CoralGradientStart,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -341,8 +321,9 @@ fun ExpandableCalendarHeader(
                                 Text(
                                     text = monthYearTitle,
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 15.sp
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        letterSpacing = (-0.2).sp
                                     ),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -355,14 +336,14 @@ fun ExpandableCalendarHeader(
                                         modifier = Modifier
                                             .size(34.dp)
                                             .clip(CircleShape)
-                                            .background(CoralGradientStart.copy(alpha = 0.1f))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
                                             .clickable { onChangeMonth(1) },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.ChevronRight,
                                             contentDescription = "Bulan Depan",
-                                            tint = CoralGradientStart,
+                                            tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -372,7 +353,7 @@ fun ExpandableCalendarHeader(
                                             .clip(CircleShape)
                                             .background(
                                                 Brush.linearGradient(
-                                                    listOf(CoralGradientStart, CoralGradientEnd)
+                                                    listOf(HeaderDarkStart, HeaderDarkEnd)
                                                 )
                                             )
                                             .clickable { onResetToday() },
@@ -382,13 +363,13 @@ fun ExpandableCalendarHeader(
                                             imageVector = Icons.Rounded.Today,
                                             contentDescription = "Hari Ini",
                                             tint = Color.White,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             // Weekday Names
                             Row(
@@ -400,7 +381,8 @@ fun ExpandableCalendarHeader(
                                         text = dayName,
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 10.sp
+                                            fontSize = 10.sp,
+                                            letterSpacing = 0.8.sp
                                         ),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                         modifier = Modifier.weight(1f),
@@ -431,19 +413,19 @@ fun ExpandableCalendarHeader(
                                                     .weight(1f)
                                                     .aspectRatio(1f)
                                                     .padding(2.dp)
-                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .clip(RoundedCornerShape(12.dp))
                                                     .background(
                                                         if (isSelected) Brush.verticalGradient(
-                                                            listOf(CoralGradientStart, CoralGradientEnd)
+                                                            listOf(HeaderDarkStart, HeaderDarkEnd)
                                                         ) else Brush.verticalGradient(
                                                             listOf(Color.Transparent, Color.Transparent)
                                                         )
                                                     )
                                                     .then(
                                                         if (day.isToday && !isSelected) Modifier.border(
-                                                            width = 1.5.dp,
-                                                            color = CoralGradientStart,
-                                                            shape = RoundedCornerShape(10.dp)
+                                                            width = 1.2.dp,
+                                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                                            shape = RoundedCornerShape(12.dp)
                                                         ) else Modifier
                                                     )
                                                     .clickable {
@@ -459,13 +441,13 @@ fun ExpandableCalendarHeader(
                                                     Text(
                                                         text = "${day.dayNumber}",
                                                         style = MaterialTheme.typography.bodyMedium.copy(
-                                                            fontWeight = if (isSelected || day.isToday) FontWeight.ExtraBold else FontWeight.Normal,
-                                                            fontSize = 12.sp
+                                                            fontWeight = if (isSelected || day.isToday) FontWeight.Bold else FontWeight.Normal,
+                                                            fontSize = 12.5.sp
                                                         ),
                                                         color = when {
                                                             isSelected -> Color.White
-                                                            !day.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)
-                                                            day.isToday -> CoralGradientStart
+                                                            !day.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                                            day.isToday -> MaterialTheme.colorScheme.primary
                                                             else -> MaterialTheme.colorScheme.onSurface
                                                         }
                                                     )
@@ -473,7 +455,7 @@ fun ExpandableCalendarHeader(
                                                         Spacer(modifier = Modifier.height(1.dp))
                                                         Box(
                                                             modifier = Modifier
-                                                                .size(4.dp)
+                                                                .size(3.5.dp)
                                                                 .clip(CircleShape)
                                                                 .background(
                                                                     if (isSelected) Color.White.copy(alpha = 0.85f)
@@ -494,7 +476,7 @@ fun ExpandableCalendarHeader(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // ── Swipe Indicator / Drag Handle Bar ──
+            // ── Minimalist Drag Handle Bar ──
             val interactionSource = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
@@ -504,9 +486,9 @@ fun ExpandableCalendarHeader(
                         detectVerticalDragGestures(
                             onDragStart = { dragDistanceY = 0f },
                             onDragEnd = {
-                                if (!isExpanded && dragDistanceY > 20f) {
+                                if (!isExpanded && dragDistanceY > 15f) {
                                     onToggleExpand()
-                                } else if (isExpanded && dragDistanceY < -20f) {
+                                } else if (isExpanded && dragDistanceY < -15f) {
                                     onToggleExpand()
                                 }
                                 dragDistanceY = 0f
@@ -514,11 +496,11 @@ fun ExpandableCalendarHeader(
                             onDragCancel = { dragDistanceY = 0f },
                             onVerticalDrag = { change, dragAmount ->
                                 dragDistanceY += dragAmount
-                                if (!isExpanded && dragDistanceY > 20f) {
+                                if (!isExpanded && dragDistanceY > 15f) {
                                     change.consume()
                                     onToggleExpand()
                                     dragDistanceY = 0f
-                                } else if (isExpanded && dragDistanceY < -20f) {
+                                } else if (isExpanded && dragDistanceY < -15f) {
                                     change.consume()
                                     onToggleExpand()
                                     dragDistanceY = 0f
@@ -530,20 +512,18 @@ fun ExpandableCalendarHeader(
                         interactionSource = interactionSource,
                         indication = null
                     ) { onToggleExpand() }
-                    .padding(vertical = 4.dp),
+                    .padding(top = 2.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Sleek iOS/Material Drag Handle Bar
                 Box(
                     modifier = Modifier
-                        .width(42.dp)
+                        .width(46.dp)
                         .height(4.5.dp)
                         .clip(RoundedCornerShape(50.dp))
-                        .background(Color.White.copy(alpha = 0.45f))
+                        .background(Color.White.copy(alpha = 0.35f))
                 )
             }
         }
     }
 }
-
