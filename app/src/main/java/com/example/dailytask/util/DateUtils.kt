@@ -54,6 +54,31 @@ object DateUtils {
         }
     }
 
+    fun getRelativeDayLabel(dateString: String): String {
+        return try {
+            val today = getTodayDateString()
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+            val yesterday = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
+            cal.add(Calendar.DAY_OF_YEAR, 2)
+            val tomorrow = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
+
+            when (dateString) {
+                today -> "Hari Ini"
+                yesterday -> "Kemarin"
+                tomorrow -> "Besok"
+                else -> {
+                    val parsed = sdf.parse(dateString) ?: return dateString
+                    val sdfShort = SimpleDateFormat("d MMMM", idLocale)
+                    sdfShort.format(parsed)
+                }
+            }
+        } catch (e: Exception) {
+            "Hari Ini"
+        }
+    }
+
     fun formatShortDate(dateString: String): String {
         return try {
             val sdfInput = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -186,5 +211,39 @@ object DateUtils {
         }
 
         return days
+    }
+
+    const val PAGER_START_INDEX = 5000
+
+    fun getAdjacentDate(dateString: String, dayOffset: Int): String {
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val date = sdf.parse(dateString) ?: Date()
+            val cal = Calendar.getInstance().apply {
+                time = date
+                add(Calendar.DAY_OF_MONTH, dayOffset)
+            }
+            sdf.format(cal.time)
+        } catch (e: Exception) {
+            dateString
+        }
+    }
+
+    fun getDateForPage(page: Int): String {
+        val offset = page - PAGER_START_INDEX
+        return getAdjacentDate(getTodayDateString(), offset)
+    }
+
+    fun getPageForDate(dateString: String): Int {
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val today = sdf.parse(getTodayDateString()) ?: Date()
+            val target = sdf.parse(dateString) ?: Date()
+            val diffMillis = target.time - today.time
+            val diffDays = Math.round(diffMillis.toDouble() / (1000 * 60 * 60 * 24)).toInt()
+            PAGER_START_INDEX + diffDays
+        } catch (e: Exception) {
+            PAGER_START_INDEX
+        }
     }
 }

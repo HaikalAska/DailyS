@@ -40,6 +40,12 @@ class DailyTaskViewModel(application: Application) : AndroidViewModel(applicatio
     val notificationsEnabled: StateFlow<Boolean> = preferencesRepository.notificationsEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val headerColorHex: StateFlow<String> = preferencesRepository.headerColor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "#141417")
+
+    val bodyColorHex: StateFlow<String> = preferencesRepository.bodyColor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "#F9F9FB")
+
     // UI Navigation & Dates
     private val _currentTab = MutableStateFlow(NavTab.TODAY)
     val currentTab: StateFlow<NavTab> = _currentTab.asStateFlow()
@@ -84,12 +90,37 @@ class DailyTaskViewModel(application: Application) : AndroidViewModel(applicatio
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Grouped tasks by date for instantaneous HorizontalPager sliding
+    val allTasksByDate: StateFlow<Map<String, List<TaskEntity>>> = taskRepository.getAllTasks()
+        .combine(_filterCategory) { tasks, category ->
+            if (category == null) tasks else tasks.filter { it.category.equals(category, ignoreCase = true) }
+        }
+        .combine(_searchQuery) { tasks, query ->
+            if (query.isBlank()) tasks else tasks.filter {
+                it.title.contains(query, ignoreCase = true) || it.description.contains(query, ignoreCase = true)
+            }
+        }
+        .map { tasks -> tasks.groupBy { it.date } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     fun switchTab(tab: NavTab) {
         _currentTab.value = tab
     }
 
     fun selectDate(date: String) {
         _selectedDate.value = date
+    }
+
+    fun navigateToAdjacentDate(direction: Int) {
+        val nextDate = DateUtils.getAdjacentDate(_selectedDate.value, direction)
+        selectDate(nextDate)
+        try {
+            val cal = Calendar.getInstance().apply {
+                time = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(nextDate) ?: java.util.Date()
+            }
+            _calendarYear.value = cal.get(Calendar.YEAR)
+            _calendarMonth.value = cal.get(Calendar.MONTH)
+        } catch (e: Exception) { }
     }
 
     fun onTodayInputChange(newText: String) {
@@ -176,6 +207,12 @@ class DailyTaskViewModel(application: Application) : AndroidViewModel(applicatio
     fun setNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setNotificationsEnabled(enabled)
+        }
+    }
+
+    fun setCustomColors(headerHex: String, bodyHex: String) {
+        viewModelScope.launch {
+            preferencesRepository.setCustomColors(headerHex, bodyHex)
         }
     }
 }

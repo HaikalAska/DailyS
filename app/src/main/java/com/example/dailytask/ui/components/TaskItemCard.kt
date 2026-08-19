@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,6 +53,7 @@ fun TaskItemCard(
     modifier: Modifier = Modifier,
     isFirst: Boolean = false,
     isLast: Boolean = false,
+    isDarkBackground: Boolean = false,
     onToggle: () -> Unit = {}
 ) {
     val categoryInfo = remember(task.category) {
@@ -59,7 +61,7 @@ fun TaskItemCard(
     }
 
     var isExpanded by remember { mutableStateOf(false) }
-    val spineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+    val spineColor = if (isDarkBackground) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
 
     val timeWidth = 48.dp
     val timeToDotGap = 10.dp
@@ -110,7 +112,7 @@ fun TaskItemCard(
                     fontSize = 12.5.sp,
                     letterSpacing = (-0.2).sp
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                color = if (isDarkBackground) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
             )
         }
 
@@ -127,7 +129,7 @@ fun TaskItemCard(
                 modifier = Modifier
                     .size(14.dp)
                     .clip(CircleShape)
-                    .background(categoryInfo.primaryColor.copy(alpha = 0.18f)),
+                    .background(categoryInfo.primaryColor.copy(alpha = if (isDarkBackground) 0.3f else 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -160,7 +162,7 @@ fun TaskItemCard(
                         fontSize = 15.sp,
                         letterSpacing = (-0.2).sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (isDarkBackground) Color.White else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     maxLines = if (isExpanded) 10 else 2,
                     overflow = TextOverflow.Ellipsis
@@ -172,7 +174,7 @@ fun TaskItemCard(
                             imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            tint = if (isDarkBackground) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         )
                     }
                     IconButton(
@@ -182,7 +184,7 @@ fun TaskItemCard(
                         Icon(
                             imageVector = Icons.Rounded.DeleteOutline,
                             contentDescription = "Hapus",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            tint = if (isDarkBackground) Color.White.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -203,7 +205,7 @@ fun TaskItemCard(
                             fontSize = 12.5.sp,
                             lineHeight = 17.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        color = if (isDarkBackground) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                     )
                 }
             }
@@ -213,7 +215,7 @@ fun TaskItemCard(
             // Category Pill Tag
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = categoryInfo.containerColor.copy(alpha = 0.6f)
+                color = if (isDarkBackground) categoryInfo.primaryColor.copy(alpha = 0.22f) else categoryInfo.containerColor.copy(alpha = 0.6f)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp),
@@ -223,7 +225,7 @@ fun TaskItemCard(
                         imageVector = categoryInfo.icon,
                         contentDescription = null,
                         modifier = Modifier.size(9.dp),
-                        tint = categoryInfo.primaryColor
+                        tint = if (isDarkBackground) categoryInfo.primaryColor.copy(alpha = 0.9f) else categoryInfo.primaryColor
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -232,7 +234,7 @@ fun TaskItemCard(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = categoryInfo.primaryColor
+                        color = if (isDarkBackground) Color.White.copy(alpha = 0.95f) else categoryInfo.primaryColor
                     )
                 }
             }

@@ -92,31 +92,18 @@ fun ConfettiBurst(
 fun LottieEmptyState(
     modifier: Modifier = Modifier
 ) {
-    // Pulse animation
-    val pulse = remember { Animatable(0.9f) }
-
-    LaunchedEffect(Unit) {
-        pulse.animateTo(
-            targetValue = 1.05f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            )
-        )
-    }
-
     Box(
-        modifier = modifier.size(120.dp),
+        modifier = modifier.size(100.dp),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 color = Color(0xFF3B82F6).copy(alpha = 0.08f),
-                radius = (size.minDimension / 2f) * pulse.value
+                radius = size.minDimension / 2f
             )
             drawCircle(
                 color = Color(0xFF3B82F6).copy(alpha = 0.15f),
-                radius = (size.minDimension / 3f) * pulse.value
+                radius = size.minDimension / 3.2f
             )
         }
     }

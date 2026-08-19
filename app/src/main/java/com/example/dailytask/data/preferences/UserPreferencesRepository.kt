@@ -21,6 +21,8 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_DARK_MODE = stringPreferencesKey("theme_mode") // "SYSTEM", "DARK", "LIGHT"
         val KEY_USER_NAME = stringPreferencesKey("user_name")
         val KEY_NOTIFICATIONS = booleanPreferencesKey("notifications_enabled")
+        val KEY_HEADER_COLOR = stringPreferencesKey("header_color_hex")
+        val KEY_BODY_COLOR = stringPreferencesKey("body_color_hex")
     }
 
     val themeMode: Flow<String> = context.dataStore.data
@@ -59,6 +61,30 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[KEY_NOTIFICATIONS] ?: true
         }
 
+    val headerColor: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_HEADER_COLOR] ?: "#141417"
+        }
+
+    val bodyColor: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_BODY_COLOR] ?: "#F9F9FB"
+        }
+
     suspend fun setThemeMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_DARK_MODE] = mode
@@ -74,6 +100,13 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_NOTIFICATIONS] = enabled
+        }
+    }
+
+    suspend fun setCustomColors(headerHex: String, bodyHex: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_HEADER_COLOR] = headerHex
+            preferences[KEY_BODY_COLOR] = bodyHex
         }
     }
 }
