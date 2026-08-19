@@ -59,6 +59,14 @@ val AccentBlueLight          = Color(0xFFEFF6FF)
 val VioletGradientStart      = Color(0xFF1E1E24)
 val VioletGradientEnd        = Color(0xFF2B2B36)
 
+fun Color.isDark(): Boolean {
+    val r = red
+    val g = green
+    val b = blue
+    val luminance = 0.2126f * r + 0.7152f * g + 0.0722f * b
+    return luminance < 0.45f
+}
+
 // Backward compat aliases
 val AccentGreen              = AccentMint
 val AccentPurple             = AccentViolet

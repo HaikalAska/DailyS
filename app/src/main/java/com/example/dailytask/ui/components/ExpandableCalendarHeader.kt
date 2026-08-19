@@ -2,9 +2,8 @@ package com.example.dailytask.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,10 +32,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Today
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -48,10 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,7 +63,6 @@ fun ExpandableCalendarHeader(
     motivationalQuote: String,
     totalCount: Int,
     isAllDone: Boolean,
-    animatedProgress: Float,
     selectedDate: String,
     datesWithTasks: Set<String>,
     year: Int,
@@ -80,6 +73,7 @@ fun ExpandableCalendarHeader(
     onChangeMonth: (Int) -> Unit,
     onResetToday: () -> Unit,
     onOpenSettings: () -> Unit,
+    headerColorHex: String = "#141417",
     modifier: Modifier = Modifier
 ) {
     val daysGrid = remember(year, month) { DateUtils.getDaysInMonthGrid(year, month) }
@@ -87,14 +81,13 @@ fun ExpandableCalendarHeader(
     val weekDays = remember { listOf("SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MIN") }
     val formattedDateHeader = remember(selectedDate) { DateUtils.formatDateToDisplay(selectedDate) }
 
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "chevronRot"
-    )
+    val parsedHeaderBase = remember(headerColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(headerColorHex))
+        } catch (e: Exception) {
+            HeaderDarkStart
+        }
+    }
 
     Box(
         modifier = modifier
@@ -103,8 +96,8 @@ fun ExpandableCalendarHeader(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        HeaderDarkStart,
-                        HeaderDarkEnd
+                        parsedHeaderBase,
+                        parsedHeaderBase.copy(alpha = 0.92f)
                     )
                 )
             )
@@ -168,7 +161,7 @@ fun ExpandableCalendarHeader(
             AnimatedContent(
                 targetState = motivationalQuote,
                 transitionSpec = {
-                    fadeIn(tween(300)) togetherWith fadeOut(tween(150))
+                    fadeIn(tween(220)) togetherWith fadeOut(tween(140))
                 },
                 label = "narrativeAnim",
                 modifier = Modifier.padding(horizontal = 22.dp)
@@ -210,89 +203,35 @@ fun ExpandableCalendarHeader(
             // ── 1-Week Horizontal Strip View (When Collapsed) ──
             AnimatedVisibility(
                 visible = !isExpanded,
-                enter = fadeIn(tween(200)) + expandVertically(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-                ),
-                exit = fadeOut(tween(150)) + shrinkVertically(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-                )
+                enter = fadeIn(tween(180, easing = FastOutSlowInEasing)) + expandVertically(tween(220, easing = FastOutSlowInEasing)),
+                exit = fadeOut(tween(120, easing = FastOutSlowInEasing)) + shrinkVertically(tween(180, easing = FastOutSlowInEasing))
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pointerInput(isExpanded) {
-                            var dragDistanceY = 0f
-                            detectVerticalDragGestures(
-                                onDragStart = { dragDistanceY = 0f },
-                                onDragEnd = {
-                                    if (dragDistanceY > 15f) {
-                                        onToggleExpand()
-                                    }
-                                    dragDistanceY = 0f
-                                },
-                                onDragCancel = { dragDistanceY = 0f },
-                                onVerticalDrag = { change, dragAmount ->
-                                    dragDistanceY += dragAmount
-                                    if (dragDistanceY > 15f) {
-                                        change.consume()
-                                        onToggleExpand()
-                                        dragDistanceY = 0f
-                                    }
-                                }
-                            )
-                        }
-                ) {
-                    HorizontalWeekStrip(
-                        selectedDate = selectedDate,
-                        datesWithTasks = datesWithTasks,
-                        onSelectDate = onSelectDate
-                    )
-                }
+                HorizontalWeekStrip(
+                    selectedDate = selectedDate,
+                    datesWithTasks = datesWithTasks,
+                    onSelectDate = onSelectDate,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             // ── Full Month Calendar Grid View (When Expanded) ──
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn(tween(250)) + expandVertically(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-                ),
-                exit = fadeOut(tween(150)) + shrinkVertically(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-                )
+                enter = fadeIn(tween(200, easing = FastOutSlowInEasing)) + expandVertically(tween(240, easing = FastOutSlowInEasing)),
+                exit = fadeOut(tween(120, easing = FastOutSlowInEasing)) + shrinkVertically(tween(180, easing = FastOutSlowInEasing))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
-                        .pointerInput(isExpanded) {
-                            var dragDistanceY = 0f
-                            detectVerticalDragGestures(
-                                onDragStart = { dragDistanceY = 0f },
-                                onDragEnd = {
-                                    if (dragDistanceY < -25f) {
-                                        onToggleExpand()
-                                    }
-                                    dragDistanceY = 0f
-                                },
-                                onDragCancel = { dragDistanceY = 0f },
-                                onVerticalDrag = { change, dragAmount ->
-                                    dragDistanceY += dragAmount
-                                    if (dragDistanceY < -25f) {
-                                        change.consume()
-                                        onToggleExpand()
-                                        dragDistanceY = 0f
-                                    }
-                                }
-                            )
-                        }
                 ) {
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 8.dp,
+                        shadowElevation = 6.dp,
                         border = androidx.compose.foundation.BorderStroke(
                             width = 0.8.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                         )
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -336,21 +275,6 @@ fun ExpandableCalendarHeader(
                                         modifier = Modifier
                                             .size(34.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .clickable { onChangeMonth(1) },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.ChevronRight,
-                                            contentDescription = "Bulan Depan",
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
                                             .background(
                                                 Brush.linearGradient(
                                                     listOf(HeaderDarkStart, HeaderDarkEnd)
@@ -364,6 +288,22 @@ fun ExpandableCalendarHeader(
                                             contentDescription = "Hari Ini",
                                             tint = Color.White,
                                             modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .clickable { onChangeMonth(1) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.ChevronRight,
+                                            contentDescription = "Bulan Depan",
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
@@ -393,12 +333,12 @@ fun ExpandableCalendarHeader(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Month Grid Days
+                            // Month Grid Days (Pre-chunked and optimized)
+                            val rows = remember(daysGrid) { daysGrid.chunked(7) }
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                val rows = daysGrid.chunked(7)
                                 rows.forEach { week ->
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
